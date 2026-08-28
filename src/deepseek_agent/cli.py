@@ -17,6 +17,7 @@ from .client import DeepSeekClient
 from .config import Settings
 from .conversation import Conversation
 from .errors import DeepSeekError
+from .telemetry import configure_telemetry
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
@@ -49,16 +50,23 @@ def chat(
         raise typer.Exit(2) from exc
     if system and not any(message.role == "system" for message in conversation.messages):
         conversation.add("system", system)
-    asyncio.run(
-        _chat_loop(
+    try:
+        telemetry = configure_telemetry(settings)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    try:
+        asyncio.run(
+            _chat_loop(
             settings,
             conversation,
             state_path=None if no_save else state_path,
             temperature=temperature,
             max_tokens=max_tokens,
-            thinking=thinking,
+                thinking=thinking,
+            )
         )
-    )
+    finally:
+        telemetry.flush()
 
 
 async def _chat_loop(

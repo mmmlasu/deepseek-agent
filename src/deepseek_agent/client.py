@@ -9,11 +9,13 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
+from opentelemetry import trace
 
 from .config import Settings
 from .errors import APIError, AuthenticationError, ProtocolError, RateLimitError
 
 _RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
+_tracer = trace.get_tracer("deepseek-agent.client")
 
 
 class DeepSeekClient:
@@ -121,7 +123,12 @@ class DeepSeekClient:
     async def _request_json(self, payload: dict[str, Any]) -> dict[str, Any]:
         for attempt in range(self.settings.max_retries + 1):
             try:
-                response = await self._client.post("/chat/completions", json=payload)
+                with _tracer.start_as_current_span("deepseek.chat.completions") as span:
+                    span.set_attribute("gen_ai.system", "deepseek")
+                    span.set_attribute("gen_ai.request.model", self.settings.model)
+                    span.set_attribute("gen_ai.request.stream", False)
+                    response = await self._client.post("/chat/completions", json=payload)
+                    span.set_attribute("http.response.status_code", response.status_code)
             except httpx.RequestError as exc:
                 if attempt >= self.settings.max_retries:
                     raise APIError(f"Could not reach DeepSeek API: {exc}") from exc
@@ -144,7 +151,12 @@ class DeepSeekClient:
         for attempt in range(self.settings.max_retries + 1):
             request = self._client.build_request("POST", "/chat/completions", json=payload)
             try:
-                response = await self._client.send(request, stream=True)
+                with _tracer.start_as_current_span("deepseek.chat.completions.stream") as span:
+                    span.set_attribute("gen_ai.system", "deepseek")
+                    span.set_attribute("gen_ai.request.model", self.settings.model)
+                    span.set_attribute("gen_ai.request.stream", True)
+                    response = await self._client.send(request, stream=True)
+                    span.set_attribute("http.response.status_code", response.status_code)
             except httpx.RequestError as exc:
                 if attempt >= self.settings.max_retries:
                     raise APIError(f"Could not reach DeepSeek API: {exc}") from exc

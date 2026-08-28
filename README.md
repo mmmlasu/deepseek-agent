@@ -94,6 +94,20 @@ CLI (Rich + Typer)
 
 The client accepts an `httpx` transport, so tests are deterministic and downstream apps can add tracing or network policy. Streaming retries happen only before a successful body begins. Once output starts, a request is never silently replayed.
 
+
+## Langfuse and OpenTelemetry
+
+Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and the base URL for your chosen Langfuse region. The current Langfuse Python SDK is OpenTelemetry-native. This project gives it the shared global `TracerProvider` and uses an explicit always-true `should_export_span` callback, so **all OTEL spans** in the process are exported, not only LLM-focused spans.
+
+```bash
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # US
+# export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # EU
+```
+
+The DeepSeek request spans carry `gen_ai.system`, `gen_ai.request.model`, stream mode, and HTTP status attributes. The CLI flushes Langfuse on shutdown so short runs do not lose buffered spans. Exporting every span can increase billable Langfuse observations; narrow `should_export_span` in `telemetry.py` if you later add noisy auto-instrumentation.
+
 ## Development
 
 ```bash
@@ -117,6 +131,8 @@ Tests cover the official request URL and auth shape, SSE comments and multiline 
 - Quick start and current model aliases: <https://api-docs.deepseek.com/>
 - API reference: <https://api-docs.deepseek.com/api/deepseek-api/>
 - Streaming thinking example: <https://api-docs.deepseek.com/guides/thinking_mode_api_example_streaming>
+- Langfuse OTEL integration: <https://langfuse.com/integrations/native/opentelemetry>
+- Langfuse SDK quick start: <https://langfuse.com/docs/observability/sdk/overview>
 
 This is an independent client and is not affiliated with or endorsed by DeepSeek.
 

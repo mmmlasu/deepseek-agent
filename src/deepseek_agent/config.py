@@ -15,6 +15,7 @@ class Settings:
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_MAX_HISTORY_MESSAGES = 40
     DEFAULT_STATE_PATH = Path("~/.local/state/deepseek-agent/conversation.json")
+    DEFAULT_LANGFUSE_BASE_URL = "https://us.cloud.langfuse.com"
 
     api_key: str
     base_url: str = DEFAULT_BASE_URL
@@ -23,6 +24,9 @@ class Settings:
     max_retries: int = DEFAULT_MAX_RETRIES
     max_history_messages: int = DEFAULT_MAX_HISTORY_MESSAGES
     state_path: Path = DEFAULT_STATE_PATH
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_base_url: str = DEFAULT_LANGFUSE_BASE_URL
 
     @classmethod
     def from_env(cls, *, api_key: str | None = None) -> Settings:
@@ -41,4 +45,9 @@ class Settings:
             state_path=Path(
                 os.getenv("DEEPSEEK_STATE_PATH", str(cls.DEFAULT_STATE_PATH))
             ).expanduser(),
+            langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+            langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+            langfuse_base_url=os.getenv(
+                "LANGFUSE_BASE_URL", cls.DEFAULT_LANGFUSE_BASE_URL
+            ).rstrip("/"),
         )
