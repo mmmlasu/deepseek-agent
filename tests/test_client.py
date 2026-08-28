@@ -106,3 +106,16 @@ def test_ip_attribute_follows_explicit_privacy_setting(enabled: bool) -> None:
     assert ("client.address" in span.attributes) is enabled
     if enabled:
         assert span.attributes["client.address"] == "203.0.113.7"
+
+
+@pytest.mark.asyncio
+async def test_complete_accepts_reasoning_only_response() -> None:
+    async def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "", "reasoning_content": "fallback"}}]},
+        )
+
+    async with DeepSeekClient(settings(), transport=httpx.MockTransport(handler)) as client:
+        result = await client.complete([{"role": "user", "content": "Hi"}])
+    assert result == "fallback"

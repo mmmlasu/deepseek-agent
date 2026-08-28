@@ -86,7 +86,8 @@ class DeepSeekClient:
             client_ip=client_ip,
         )
         try:
-            content = response["choices"][0]["message"]["content"]
+            message = response["choices"][0]["message"]
+            content = message.get("content") or message.get("reasoning_content")
         except (KeyError, IndexError, TypeError) as exc:
             raise ProtocolError("Response did not contain an assistant message") from exc
         if not isinstance(content, str):
