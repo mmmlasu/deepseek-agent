@@ -9,13 +9,20 @@ from pathlib import Path
 
 @dataclass(frozen=True, slots=True)
 class Settings:
+    DEFAULT_BASE_URL = "https://api.deepseek.com"
+    DEFAULT_MODEL = "deepseek-v4-pro"
+    DEFAULT_TIMEOUT_SECONDS = 60.0
+    DEFAULT_MAX_RETRIES = 3
+    DEFAULT_MAX_HISTORY_MESSAGES = 40
+    DEFAULT_STATE_PATH = Path("~/.local/state/deepseek-agent/conversation.json")
+
     api_key: str
-    base_url: str = "https://api.deepseek.com"
-    model: str = "deepseek-v4-pro"
-    timeout_seconds: float = 60.0
-    max_retries: int = 3
-    max_history_messages: int = 40
-    state_path: Path = Path("~/.local/state/deepseek-agent/conversation.json")
+    base_url: str = DEFAULT_BASE_URL
+    model: str = DEFAULT_MODEL
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+    max_retries: int = DEFAULT_MAX_RETRIES
+    max_history_messages: int = DEFAULT_MAX_HISTORY_MESSAGES
+    state_path: Path = DEFAULT_STATE_PATH
 
     @classmethod
     def from_env(cls, *, api_key: str | None = None) -> Settings:
@@ -24,14 +31,14 @@ class Settings:
             raise ValueError("Missing API key. Set DEEPSEEK_API_KEY or pass --api-key.")
         return cls(
             api_key=key,
-            base_url=os.getenv("DEEPSEEK_BASE_URL", cls.base_url).rstrip("/"),
-            model=os.getenv("DEEPSEEK_MODEL", cls.model),
-            timeout_seconds=float(os.getenv("DEEPSEEK_TIMEOUT", cls.timeout_seconds)),
-            max_retries=int(os.getenv("DEEPSEEK_MAX_RETRIES", cls.max_retries)),
+            base_url=os.getenv("DEEPSEEK_BASE_URL", cls.DEFAULT_BASE_URL).rstrip("/"),
+            model=os.getenv("DEEPSEEK_MODEL", cls.DEFAULT_MODEL),
+            timeout_seconds=float(os.getenv("DEEPSEEK_TIMEOUT", cls.DEFAULT_TIMEOUT_SECONDS)),
+            max_retries=int(os.getenv("DEEPSEEK_MAX_RETRIES", cls.DEFAULT_MAX_RETRIES)),
             max_history_messages=int(
-                os.getenv("DEEPSEEK_MAX_HISTORY_MESSAGES", cls.max_history_messages)
+                os.getenv("DEEPSEEK_MAX_HISTORY_MESSAGES", cls.DEFAULT_MAX_HISTORY_MESSAGES)
             ),
             state_path=Path(
-                os.getenv("DEEPSEEK_STATE_PATH", str(cls.state_path))
+                os.getenv("DEEPSEEK_STATE_PATH", str(cls.DEFAULT_STATE_PATH))
             ).expanduser(),
         )
