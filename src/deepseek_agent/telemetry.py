@@ -1,12 +1,8 @@
-"""Langfuse-backed OpenTelemetry setup.
-
-Langfuse SDK v3+ is OTEL-native. An always-true export callback intentionally
-ships spans from every instrumentation scope, matching this project's
-"all traces" observability policy.
-"""
+"""Langfuse-backed OpenTelemetry setup and privacy-safe span helpers."""
 
 from __future__ import annotations
 
+import ipaddress
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,12 +27,18 @@ def _export_every_span(_: Any) -> bool:
     return True
 
 
-def configure_telemetry(settings: Settings) -> Telemetry:
-    """Configure a shared global OTEL provider and Langfuse exporter.
+def client_ip_attribute(settings: Settings, client_ip: str | None) -> str | None:
+    """Return a normalized IP only when collection was explicitly enabled."""
+    if not settings.otel_capture_client_ip or not client_ip:
+        return None
+    try:
+        return str(ipaddress.ip_address(client_ip))
+    except ValueError as exc:
+        raise ValueError("client_ip must be a valid IPv4 or IPv6 address") from exc
 
-    Telemetry is disabled when Langfuse credentials are absent so local use is
-    frictionless. Supplying only one key is treated as a configuration error.
-    """
+
+def configure_telemetry(settings: Settings) -> Telemetry:
+    """Configure a shared global OTEL provider and Langfuse exporter."""
     public_key = settings.langfuse_public_key
     secret_key = settings.langfuse_secret_key
     if not public_key and not secret_key:
@@ -46,9 +48,7 @@ def configure_telemetry(settings: Settings) -> Telemetry:
 
     provider = trace.get_tracer_provider()
     if not isinstance(provider, TracerProvider):
-        provider = TracerProvider(
-            resource=Resource.create({"service.name": "deepseek-agent"})
-        )
+        provider = TracerProvider(resource=Resource.create({"service.name": "deepseek-agent"}))
         trace.set_tracer_provider(provider)
 
     langfuse = Langfuse(

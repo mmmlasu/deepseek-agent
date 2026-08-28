@@ -27,6 +27,7 @@ class Settings:
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_base_url: str = DEFAULT_LANGFUSE_BASE_URL
+    otel_capture_client_ip: bool = False
 
     @classmethod
     def from_env(cls, *, api_key: str | None = None) -> Settings:
@@ -50,4 +51,7 @@ class Settings:
             langfuse_base_url=os.getenv(
                 "LANGFUSE_BASE_URL", cls.DEFAULT_LANGFUSE_BASE_URL
             ).rstrip("/"),
+            otel_capture_client_ip=os.getenv(
+                "DEEPSEEK_OTEL_CAPTURE_CLIENT_IP", "false"
+            ).strip().lower() in {"1", "true", "yes", "on"},
         )

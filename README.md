@@ -139,3 +139,30 @@ This is an independent client and is not affiliated with or endorsed by DeepSeek
 ## License
 
 MIT
+
+### Privacy-sensitive telemetry
+
+Client IP collection is **off by default**. The library never guesses an IP from the
+machine or HTTP environment. An application that has informed its user and obtained
+consent must do both of the following:
+
+```bash
+export DEEPSEEK_OTEL_CAPTURE_CLIENT_IP=true
+```
+
+```python
+await client.complete(messages, client_ip=request.client.host)
+# stream(..., client_ip=...) supports the same explicit argument
+```
+
+Only then is a validated IP attached as the standard OTEL `client.address` attribute.
+When the setting is absent or false, a supplied `client_ip` is discarded. Do not enable
+this globally as a shortcut: IP addresses can be personal data. Give users a clear
+choice, state the purpose and retention period, honor withdrawal, and review applicable
+law and your Langfuse access controls before enabling it.
+
+The request spans also record operation/provider/model, streaming mode, temperature,
+optional max-token and thinking settings, server address, HTTP status, DeepSeek request
+and response IDs when returned, response model, finish reasons, and input/output token
+counts when DeepSeek returns usage. Prompt and response content are deliberately not
+recorded by this client.

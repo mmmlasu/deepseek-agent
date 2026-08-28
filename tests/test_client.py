@@ -84,3 +84,25 @@ async def test_malformed_success_response_is_protocol_error() -> None:
     async with DeepSeekClient(settings(), transport=httpx.MockTransport(handler)) as client:
         with pytest.raises(ProtocolError):
             await client.complete([{"role": "user", "content": "Hi"}])
+
+
+class RecordingSpan:
+    def __init__(self) -> None:
+        self.attributes: dict[str, object] = {}
+
+    def set_attribute(self, key: str, value: object) -> None:
+        self.attributes[key] = value
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_ip_attribute_follows_explicit_privacy_setting(enabled: bool) -> None:
+    client = DeepSeekClient(settings(otel_capture_client_ip=enabled))
+    span = RecordingSpan()
+    client._set_request_attributes(  # type: ignore[arg-type]
+        span,
+        {"stream": False, "temperature": 0.2, "max_tokens": 8},
+        "203.0.113.7",
+    )
+    assert ("client.address" in span.attributes) is enabled
+    if enabled:
+        assert span.attributes["client.address"] == "203.0.113.7"
